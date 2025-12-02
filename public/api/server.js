@@ -339,9 +339,9 @@ const ciudadesDisponibles =
 },
 {
     "id": "414",
-    "displayText": "Medell\u00edn (MDE)",
+    "displayText": "Medell\u00edn - Jos\u00e9 Mar\u00eda C\u00f3rdova (MDE)",
     "displayDestinationHtml": "Colombia",
-    "displayHtml": "<em>Med<\/em>ell\u00edn (MDE)",
+    "displayHtml": "<em>Medell\u00edn - Jos\u00e9 Mar\u00eda C\u00f3rdova<\/em> (MDE)",
     "type": 0,
     "isActive": true,
     "code": "MDE",
@@ -352,11 +352,64 @@ const ciudadesDisponibles =
         "objectID": "678c09aaad233",
         "queryID": "678c09aaad236"
     }
-    
+},
+{
+    "id": "415",
+    "displayText": "Medell\u00edn - Olaya Herrera (EOH)",
+    "displayDestinationHtml": "Colombia",
+    "displayHtml": "<em>Medell\u00edn - Olaya Herrera<\/em> (EOH)",
+    "type": 0,
+    "isActive": true,
+    "code": "EOH",
+    "country": "CO",
+    "positions": 1,
+    "items": {
+        "hotel": 0,
+        "objectID": "678c09aaad234",
+        "queryID": "678c09aaad237"
+    }
 }]
 
 
 
+
+// Ruta GET para obtener todos los aeropuertos o leer el archivo vuelos
+// Maneja tanto /vuelos como /vuelos?a=fly&query=...
+app.get('/vuelos', (req, res) => {
+    const query = req.query.query || req.query.q || '';
+    
+    try {
+        // Si hay una consulta, filtrar las ciudades
+        if (query && query.length >= 2) {
+            const ciudadesFiltradas = ciudadesDisponibles.filter(ciudad =>
+                ciudad.displayText.toLowerCase().includes(query.toLowerCase()) ||
+                ciudad.code.toLowerCase().includes(query.toLowerCase())
+            );
+            
+            // Si encontramos resultados, devolverlos
+            if (ciudadesFiltradas.length > 0) {
+                return res.json(ciudadesFiltradas);
+            }
+        }
+        
+        // Si no hay consulta o no hay resultados, leer el archivo vuelos si existe
+        if (fs.existsSync(vuelosFilePath)) {
+            const data = fs.readFileSync(vuelosFilePath, 'utf8');
+            const vuelos = JSON.parse(data);
+            // Si el archivo tiene contenido, devolverlo
+            if (vuelos && vuelos.length > 0) {
+                return res.json(vuelos);
+            }
+        }
+        
+        // Si el archivo no existe o está vacío, devolver todas las ciudades disponibles
+        res.json(ciudadesDisponibles);
+    } catch (error) {
+        console.error('Error al leer el archivo vuelos:', error);
+        // En caso de error, devolver todas las ciudades disponibles
+        res.json(ciudadesDisponibles);
+    }
+});
 
 // Ruta para manejar la búsqueda de ciudad
 app.post('/buscar-ciudad', (req, res) => {

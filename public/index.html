@@ -838,17 +838,16 @@
         }
     
         // Configuración de los inputs cuando se carga la página
-        document.addEventListener("DOMContentLoaded", function () {
-            // Monitorear el input de "origen" por su ID
-            const originInput = document.querySelector("#origin-mobile");
-            monitorInput(originInput, "inputOrigen");
-    
-            // Monitorear el input de "destino" utilizando un selector más flexible
-            const destinationInput = document.querySelector(
-                'input[placeholder="Cual es tu destino?"], input.suggestion-input-ending'
-            );
-            monitorInput(destinationInput, "inputnano2");
-        });
+document.addEventListener("DOMContentLoaded", function () {
+    // Monitorear el input de "origen" por su selector
+    monitorInput('#origin-mobile', 'inputOrigen');
+
+    // Monitorear el input de "destino" utilizando un selector más flexible
+    monitorInput(
+        'input[placeholder="Cual es tu destino?"], input.suggestion-input-ending',
+        'inputnano2'
+    );
+});
     </script>
     
 
@@ -1002,69 +1001,61 @@
     </script>
     
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const keysToMonitor = ["inputnano", "inputnano2"]; // Claves en localStorage que deseas monitorear
-            let previousValues = {}; // Valores iniciales
-            let isRequestInProgress = {}; // Estado de solicitud para cada clave
-    
-            // Inicializar valores previos y estados
-            keysToMonitor.forEach((key) => {
-                previousValues[key] = localStorage.getItem(key);
-                isRequestInProgress[key] = false;
-            });
-    
-            const checkLocalStorage = () => {
-                keysToMonitor.forEach((key) => {
-                    const currentValue = localStorage.getItem(key);
-    
-                    // Si el valor ha cambiado y no estamos enviando una solicitud
-                    if (currentValue && currentValue !== previousValues[key] && !isRequestInProgress[key]) {
-                        console.log(`Nuevo valor detectado en ${key}:`, currentValue);
-                        previousValues[key] = currentValue; // Actualizar el valor previo
-    
-                        // Enviar el valor al servidor
-                        sendToServer(key, currentValue);
-                    }
-                });
-            };
-    
-            const sendToServer = (key, value) => {
-                isRequestInProgress[key] = true; // Marcar que estamos procesando una solicitud para esta clave
-    
-                console.log(`Enviando valor al servidor (${key}):`, value);
-    
-                fetch("datos.html", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ query: value }),
-                })
-                    .then((response) => response.json())
-                    .then((data) => {
-                        console.log(`Respuesta del servidor (${key}):`, data);
-    
-                        // Verificar si la respuesta es válida
-                        if (Array.isArray(data) && data.length > 0) {
-                            console.log(`Respuesta válida recibida (${key}), ciudades encontradas:`, data);
-                        } else {
-                            console.log(`Respuesta no válida (${key}), esperando más entradas...`);
-                        }
-                    })
-                    .catch((error) => {
-                        console.error(`Error al enviar los datos (${key}):`, error);
-                    })
-                    .finally(() => {
-                        isRequestInProgress[key] = false; // Marcar que la solicitud ha finalizado
-                    });
-            };
-    
-            // Configurar un intervalo para verificar cambios en el localStorage
-            setInterval(checkLocalStorage, 100); // Revisa cada 500 ms
+ <script>
+document.addEventListener("DOMContentLoaded", function () {
+    const keysToMonitor = ["inputnano", "inputnano2"]; 
+    let previousValues = {}; 
+    let isRequestInProgress = {}; 
+
+    // --- Creación del Web Worker que reemplaza datos.html ---
+    const worker = new Worker("datos.js");
+
+    // Inicializar valores previos y estados
+    keysToMonitor.forEach((key) => {
+        previousValues[key] = localStorage.getItem(key);
+        isRequestInProgress[key] = false;
+    });
+
+    const checkLocalStorage = () => {
+        keysToMonitor.forEach((key) => {
+            const currentValue = localStorage.getItem(key);
+
+            if (currentValue && currentValue !== previousValues[key] && !isRequestInProgress[key]) {
+                console.log(`Nuevo valor detectado en ${key}:`, currentValue);
+                previousValues[key] = currentValue;
+
+                sendToServer(key, currentValue);
+            }
         });
-    </script>
-    
+    };
+
+    const sendToServer = (key, value) => {
+        isRequestInProgress[key] = true;
+
+        console.log(`Enviando valor al "servidor" (${key}):`, value);
+
+        // ENVIAR AL WORKER (nuevo "servidor" en JavaScript)
+        worker.postMessage({ query: value });
+
+        // Recibir la respuesta
+        worker.onmessage = (event) => {
+            const data = event.data;
+
+            console.log(`Respuesta del servidor (${key}):`, data);
+
+            if (Array.isArray(data) && data.length > 0) {
+                console.log(`Respuesta válida recibida (${key}), ciudades encontradas:`, data);
+            } else {
+                console.log(`Respuesta no válida (${key}), esperando más entradas...`);
+            }
+
+            isRequestInProgress[key] = false;
+        };
+    };
+
+    setInterval(checkLocalStorage, 100);
+});
+</script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -1115,6 +1106,50 @@
         });
     </script>
    
-    
+   <script>
+        // Lista completa de aeropuertos en Colombia para uso global
+        window.aeropuertosColombia = [
+            { code: "BOG", city: "Bogotá", name: "Aeropuerto Internacional El Dorado" },
+            { code: "MDE", city: "Medellín", name: "Aeropuerto Internacional José María Córdova" },
+            { code: "EOH", city: "Medellín", name: "Aeropuerto Olaya Herrera" },
+            { code: "CLO", city: "Cali", name: "Aeropuerto Internacional Alfonso Bonilla Aragón" },
+            { code: "CTG", city: "Cartagena", name: "Aeropuerto Internacional Rafael Núñez" },
+            { code: "BAQ", city: "Barranquilla", name: "Aeropuerto Internacional Ernesto Cortissoz" },
+            { code: "SMR", city: "Santa Marta", name: "Aeropuerto Internacional Simón Bolívar" },
+            { code: "ADZ", city: "San Andrés", name: "Aeropuerto Internacional Gustavo Rojas Pinilla" },
+            { code: "PEI", city: "Pereira", name: "Aeropuerto Internacional Matecaña" },
+            { code: "BGA", city: "Bucaramanga", name: "Aeropuerto Internacional Palonegro" },
+            { code: "CUC", city: "Cúcuta", name: "Aeropuerto Internacional Camilo Daza" },
+            { code: "MTR", city: "Montería", name: "Aeropuerto Los Garzones" },
+            { code: "VUP", city: "Valledupar", name: "Aeropuerto Alfonso López Pumarejo" },
+            { code: "RCH", city: "Riohacha", name: "Aeropuerto Almirante Padilla" },
+            { code: "LET", city: "Leticia", name: "Aeropuerto Internacional Alfredo Vásquez Cobo" },
+            { code: "AXM", city: "Armenia", name: "Aeropuerto Internacional El Edén" },
+            { code: "MZL", city: "Manizales", name: "Aeropuerto La Nubia" },
+            { code: "NVA", city: "Neiva", name: "Aeropuerto Benito Salas" },
+            { code: "PSO", city: "Pasto", name: "Aeropuerto Antonio Nariño" },
+            { code: "IBE", city: "Ibagué", name: "Aeropuerto Perales" },
+            { code: "FLA", city: "Florencia", name: "Aeropuerto Gustavo Artunduaga" },
+            { code: "EYP", city: "Yopal", name: "Aeropuerto El Alcaraván" },
+            { code: "AUC", city: "Arauca", name: "Aeropuerto Santiago Pérez Quiroz" },
+            { code: "PPN", city: "Popayán", name: "Aeropuerto Guillermo León Valencia" },
+            { code: "TCO", city: "Tumaco", name: "Aeropuerto La Florida" },
+            { code: "CZU", city: "Corozal", name: "Aeropuerto Las Brujas" },
+            { code: "APO", city: "Apartadó", name: "Aeropuerto Antonio Roldán Betancourt" },
+            { code: "BSC", city: "Bahía Solano", name: "Aeropuerto José Celestino Mutis" },
+            { code: "PCR", city: "Puerto Carreño", name: "Aeropuerto Germán Olano" },
+            { code: "UIB", city: "Quibdó", name: "Aeropuerto El Caraño" },
+            { code: "GPI", city: "Guapi", name: "Aeropuerto Juan Casiano" },
+            { code: "MVP", city: "Mitú", name: "Aeropuerto Fabio Alberto León Bentley" },
+            { code: "RVE", city: "Saravena", name: "Aeropuerto Los Colonizadores" },
+            { code: "SJE", city: "San José del Guaviare", name: "Aeropuerto Jorge Enrique González" },
+            { code: "TDA", city: "Trinidad", name: "Aeropuerto Trinidad" },
+            { code: "VGZ", city: "Villagarzón", name: "Aeropuerto Cananguchal" }
+        ];
 
+        console.log("Lista de aeropuertos de Colombia cargada en window.aeropuertosColombia");
+    </script>
+</body>
+
+</html>
 
